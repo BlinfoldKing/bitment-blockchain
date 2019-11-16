@@ -1,7 +1,7 @@
 defmodule Blockchain do
   use GenServer
 
-  def start_link do
+  def start_link(_) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
@@ -14,26 +14,40 @@ defmodule Blockchain do
     GenServer.cast(process, {:insert, data})
   end
 
-  def handle_cast({:insert, data}, state) do
+  def handle_call({:insert, data}, _from, state) when length(state) > 0 do
     [first | _] = state
     next_block = GenServer.call(first, {:info})
 
     block =
       %Block{
         data: data,
-        next: next_block.hash
+        next: next_block.hash,
+        timestamp: NaiveDateTime.utc_now()
       }
       |> Crypto.put_hash()
 
     {:ok, pid} = GenServer.start(Block, block)
-    {:noreply, [pid | state]}
+    {:reply, block.hash, [pid | state]}
+  end
+
+  def handle_call({:insert, data}, _from, state) when length(state) == 0 do
+    block =
+      %Block{
+        data: data,
+        next: "",
+        timestamp: NaiveDateTime.utc_now()
+      }
+      |> Crypto.put_hash()
+
+    {:ok, pid} = GenServer.start(Block, block)
+    {:reply, block.hash, [pid | state]}
   end
 
   def get_by_hash(process, hash) do
     GenServer.call(process, {:get, hash})
   end
 
-  def handle_call({:get, hash}, state) do
+  def handle_call({:get, hash}, _from, state) do
     result =
       state
       |> Enum.map(fn pid -> GenServer.call(pid, {:info}) end)

@@ -7,10 +7,13 @@ defmodule MinimalServer.Application do
 
   def start(_type, _args) do
     children = [
-      MinimalServer.Endpoint
+      MinimalServer.Endpoint,
+      Blockchain
       # Starts a worker by calling: MinimalServer.Worker.start_link(arg)
       # {MinimalServer.Worker, arg}
     ]
+
+    IO.inspect(children)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
